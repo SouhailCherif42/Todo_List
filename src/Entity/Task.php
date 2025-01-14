@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Entity\User;
 use App\Repository\TaskRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -22,6 +23,10 @@ class Task
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $deadline = null;
+
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'tasks')]
+    #[ORM\JoinColumn(nullable: false)] // Une tâche doit toujours appartenir à un utilisateur
+    private ?User $owner = null;
 
     public function getId(): ?int
     {
@@ -60,6 +65,18 @@ class Task
     public function setDeadline(?\DateTimeInterface $deadline): static
     {
         $this->deadline = $deadline;
+
+        return $this;
+    }
+    
+    public function getOwner(): ?User
+    {
+        return $this->owner;
+    }
+
+    public function setOwner(?User $owner): self
+    {
+        $this->owner = $owner;
 
         return $this;
     }

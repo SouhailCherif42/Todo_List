@@ -10,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Bundle\SecurityBundle\Security;
 
 #[Route('/task')]
 final class TaskController extends AbstractController{
@@ -22,22 +23,22 @@ final class TaskController extends AbstractController{
     }
 
     #[Route('/new', name: 'app_task_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, EntityManagerInterface $entityManager): Response
+    public function new(Request $request, TaskRepository $taskRepository, Security $security): Response
     {
         $task = new Task();
         $form = $this->createForm(TaskType::class, $task);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->persist($task);
-            $entityManager->flush();
+            $task->setOwner($security->getUser()); // Associe l'utilisateur connecté
+            $taskRepository->save($task, true);
 
             return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
         }
 
         return $this->render('task/new.html.twig', [
             'task' => $task,
-            'form' => $form,
+            'form' => $form->createView(),
         ]);
     }
 

@@ -1,11 +1,13 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}New Task{% endblock %}
+{% block stylesheets %}
+<link rel="stylesheet" href="{{ asset('css/new.css') }}">
+{% endblock %}
 
 {% block body %}
     <h1>Create new Task</h1>
 
     {{ include('task/_form.html.twig') }}
 
-    <a href="{{ path('app_task_index') }}">back to list</a>
+    <div class="buttons">
+        <a href="{{ path('app_task_index') }}">back to list</a>
+    </div>
 {% endblock %}
