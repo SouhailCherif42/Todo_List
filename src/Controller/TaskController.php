@@ -14,13 +14,25 @@ use Symfony\Bundle\SecurityBundle\Security;
 
 #[Route('/task')]
 final class TaskController extends AbstractController{
+    
     #[Route(name: 'app_task_index', methods: ['GET'])]
-    public function index(TaskRepository $taskRepository): Response
+    public function index(TaskRepository $taskRepository, Security $security): Response
     {
+        $user = $security->getUser();
+    
+        if ($security->isGranted('ROLE_ADMIN')) {
+            // Si l'utilisateur a le rôle ROLE_ADMIN, récupérer toutes les tâches
+            $tasks = $taskRepository->findAll();
+        } else {
+            // Sinon, récupérer uniquement les tâches appartenant à l'utilisateur
+            $tasks = $taskRepository->findBy(['owner' => $user]);
+        }
+    
         return $this->render('task/index.html.twig', [
-            'tasks' => $taskRepository->findAll(),
+            'tasks' => $tasks,
         ]);
     }
+    
 
     #[Route('/new', name: 'app_task_new', methods: ['GET', 'POST'])]
     public function new(Request $request, TaskRepository $taskRepository, Security $security): Response

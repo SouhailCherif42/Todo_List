@@ -4,6 +4,8 @@ namespace App\Entity;
 
 use App\Entity\User;
 use App\Repository\TaskRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
@@ -24,9 +26,28 @@ class Task
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $deadline = null;
 
-    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'tasks')]
-    #[ORM\JoinColumn(nullable: false)] // Une tâche doit toujours appartenir à un utilisateur
-    private ?User $owner = null;
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'ownedTasks')]
+    #[ORM\JoinTable(name: 'task_owners')]
+    private Collection $owners; // Relation ManyToMany pour les propriétaires
+
+    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'assignedTasks')]
+    #[ORM\JoinTable(name: 'task_assignees')]
+    private Collection $assignees; // Relation ManyToMany pour les assignations
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $status = null;
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    private ?int $priority = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $category = null;
+
+    public function __construct()
+    {
+        $this->owners = new ArrayCollection();
+        $this->assignees = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -38,7 +59,7 @@ class Task
         return $this->title;
     }
 
-    public function setTitle(string $title): static
+    public function setTitle(string $title): self
     {
         $this->title = $title;
 
@@ -50,7 +71,7 @@ class Task
         return $this->description;
     }
 
-    public function setDescription(string $description): static
+    public function setDescription(string $description): self
     {
         $this->description = $description;
 
@@ -62,21 +83,87 @@ class Task
         return $this->deadline;
     }
 
-    public function setDeadline(?\DateTimeInterface $deadline): static
+    public function setDeadline(?\DateTimeInterface $deadline): self
     {
         $this->deadline = $deadline;
 
         return $this;
     }
-    
-    public function getOwner(): ?User
+
+    public function getOwners(): Collection
     {
-        return $this->owner;
+        return $this->owners;
     }
 
-    public function setOwner(?User $owner): self
+    public function addOwner(User $owner): self
     {
-        $this->owner = $owner;
+        if (!$this->owners->contains($owner)) {
+            $this->owners->add($owner);
+        }
+
+        return $this;
+    }
+
+    public function removeOwner(User $owner): self
+    {
+        $this->owners->removeElement($owner);
+
+        return $this;
+    }
+
+    public function getAssignees(): Collection
+    {
+        return $this->assignees;
+    }
+
+    public function addAssignee(User $assignee): self
+    {
+        if (!$this->assignees->contains($assignee)) {
+            $this->assignees->add($assignee);
+        }
+
+        return $this;
+    }
+
+    public function removeAssignee(User $assignee): self
+    {
+        $this->assignees->removeElement($assignee);
+
+        return $this;
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status;
+    }
+
+    public function setStatus(?string $status): self
+    {
+        $this->status = $status;
+
+        return $this;
+    }
+
+    public function getPriority(): ?int
+    {
+        return $this->priority;
+    }
+
+    public function setPriority(?int $priority): self
+    {
+        $this->priority = $priority;
+
+        return $this;
+    }
+
+    public function getCategory(): ?string
+    {
+        return $this->category;
+    }
+
+    public function setCategory(?string $category): self
+    {
+        $this->category = $category;
 
         return $this;
     }

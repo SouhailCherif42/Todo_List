@@ -15,15 +15,10 @@ use Symfony\Bundle\SecurityBundle\Security;
 final class HomeController extends AbstractController{
 
     #[Route('/', name: 'home', methods: ['GET'])]
-    public function index(TaskRepository $taskRepository, Security $security): Response
-    {
-        $user = $security->getUser();
-        $tasks = $taskRepository->findBy(['owner' => $user]);
-
-        return $this->render('task/index.html.twig', [
-            'tasks' => $tasks,
-        ]);
-    }
+      public function login(TaskRepository $taskRepository, Security $security): Response
+      {
+          return $this->render('base.html.twig');
+      }
 
 }
 

@@ -3,8 +3,12 @@
 {% endblock %}
 
 {% block body %}
+<div class="container">
     <h1>To do List</h1>
 
+    <a href="/logout">Sign Out</a>
+</div>
+    <a class="task_new"href="{{ path('app_task_new') }}">Create new</a>
     <table class="table">
         <thead>
             <tr>
@@ -34,6 +38,4 @@
         {% endfor %}
         </tbody>
     </table>
-
-    <a class="task_new"href="{{ path('app_task_new') }}">Create new</a>
 {% endblock %}

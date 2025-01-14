@@ -1,8 +1,9 @@
-{% extends 'base.html.twig' %}
-
-{% block title %}Log in!{% endblock %}
+{% block stylesheets %}
+<link rel="stylesheet" href="{{ asset('css/login.css') }}">
+{% endblock %}
 
 {% block body %}
+<h1>To Do List</h1>
 <form method="post">
     {% if error %}
         <div class="alert alert-danger">{{ error.messageKey|trans(error.messageData, 'security') }}</div>
@@ -33,5 +34,6 @@
     <button class="btn btn-lg btn-primary" type="submit">
         Sign in
     </button>
+    <a href="/">Revenir</a>
 </form>
 {% endblock %}
