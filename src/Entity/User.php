@@ -30,7 +30,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @ORM\Column(type="json")
      */
-    private $roles = [];
+    private array $roles = ['ROLE_USER'];
 
     /**
      * @var string The hashed password
@@ -38,8 +38,65 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?string $password = null;
 
-    #[ORM\OneToMany(mappedBy: 'owner', targetEntity: Task::class)]
-    private Collection $tasks;
+    #[ORM\ManyToMany(targetEntity: Task::class, mappedBy: 'owners')]
+    private Collection $ownedTasks;
+
+    #[ORM\ManyToMany(targetEntity: Task::class, mappedBy: 'assignees')]
+    private Collection $assignedTasks;
+
+    public function __construct()
+    {
+        $this->ownedTasks = new ArrayCollection();
+        $this->assignedTasks = new ArrayCollection();
+    }
+
+    public function getOwnedTasks(): Collection
+    {
+        return $this->ownedTasks;
+    }
+
+    public function addOwnedTask(Task $task): self
+    {
+        if (!$this->ownedTasks->contains($task)) {
+            $this->ownedTasks->add($task);
+            $task->addOwner($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOwnedTask(Task $task): self
+    {
+        if ($this->ownedTasks->removeElement($task)) {
+            $task->removeOwner($this);
+        }
+
+        return $this;
+    }
+
+    public function getAssignedTasks(): Collection
+    {
+        return $this->assignedTasks;
+    }
+
+    public function addAssignedTask(Task $task): self
+    {
+        if (!$this->assignedTasks->contains($task)) {
+            $this->assignedTasks->add($task);
+            $task->addAssignee($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAssignedTask(Task $task): self
+    {
+        if ($this->assignedTasks->removeElement($task)) {
+            $task->removeAssignee($this);
+        }
+
+        return $this;
+    }
 
     public function getId(): ?int
     {
@@ -58,14 +115,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-        public function __construct()
-    {
-        $this->tasks = new ArrayCollection();
-    }
-
     public function getTasks(): Collection
     {
         return $this->tasks;
+    }
+
+    public function addTask(Task $task): self
+    {
+        if (!$this->tasks->contains($task)) {
+            $this->tasks->add($task);
+            $task->addOwner($this); // Synchroniser la relation
+        }
+
+        return $this;
+    }
+
+    public function removeTask(Task $task): self
+    {
+        if ($this->tasks->removeElement($task)) {
+            $task->removeOwner($this); // Synchroniser la relation
+        }
+
+        return $this;
     }
 
     /**
@@ -79,13 +150,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @see UserInterface
-     * @return list<string>
+     * @return string
+     *@see UserInterface
      */
     public function getRoles(): array
     {
-        return ['ROLE_USER'];
+        $roles = $this->roles ?? ['ROLE_USER'];
+        return array_unique($roles); // OKAZOU doublon
     }
+
 
     /**
      * @param list<string> $roles

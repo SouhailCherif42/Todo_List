@@ -17,7 +17,11 @@ final class HomeController extends AbstractController{
     #[Route('/', name: 'home', methods: ['GET'])]
       public function login(TaskRepository $taskRepository, Security $security): Response
       {
-          return $this->render('base.html.twig');
+        //if ($this->getUser()) {
+        //    return $this->redirectToRoute('app_task_index');
+        //}
+
+        return $this->render('base.html.twig');
       }
 
 }

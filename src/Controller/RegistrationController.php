@@ -12,8 +12,8 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class RegistrationController extends AbstractController
 {
-    private $passwordHasher;
-    private $entityManager;
+    private UserPasswordHasherInterface $passwordHasher;
+    private EntityManagerInterface $entityManager;
 
     public function __construct(UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager)
     {
@@ -34,7 +34,7 @@ class RegistrationController extends AbstractController
             $plainPassword = $form->get('password')->getData();
             $hashedPassword = $this->passwordHasher->hashPassword($user, $plainPassword);
             $user->setPassword($hashedPassword);
-
+            $user->setRoles(['ROLE_USER']);
             // Sauvegarder l'utilisateur dans la base de données
             $this->entityManager->persist($user);
             $this->entityManager->flush();

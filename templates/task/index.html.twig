@@ -12,20 +12,24 @@
     <table class="table">
         <thead>
             <tr>
-                <th>Id</th>
                 <th>Title</th>
                 <th>Description</th>
                 <th>Deadline</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Priority</th>
                 <th>actions</th>
             </tr>
         </thead>
         <tbody>
         {% for task in tasks %}
             <tr>
-                <td>{{ task.id }}</td>
                 <td>{{ task.title }}</td>
                 <td>{{ task.description }}</td>
                 <td>{{ task.deadline ? task.deadline|date('Y-m-d H:i:s') : '' }}</td>
+                <td>{{ task.category }}</td>
+                <td>{{ task.Status }}</td>
+                <td>{{ task.Priority }}</td>
                 <td>
                     <a href="{{ path('app_task_show', {'id': task.id}) }}">show</a>
                     <a href="{{ path('app_task_edit', {'id': task.id}) }}">edit</a>
@@ -33,7 +37,7 @@
             </tr>
         {% else %}
             <tr>
-                <td colspan="5">no records found</td>
+                <td colspan="7">no records found</td>
             </tr>
         {% endfor %}
         </tbody>

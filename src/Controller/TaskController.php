@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Entity\Task;
+use App\Entity\User;
 use App\Form\TaskType;
 use App\Repository\TaskRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -19,31 +21,45 @@ final class TaskController extends AbstractController{
     public function index(TaskRepository $taskRepository, Security $security): Response
     {
         $user = $security->getUser();
-    
-        if ($security->isGranted('ROLE_ADMIN')) {
-            // Si l'utilisateur a le rôle ROLE_ADMIN, récupérer toutes les tâches
-            $tasks = $taskRepository->findAll();
+        dump($user->getRoles());
+        if (in_array('ROLE_ADMIN', $user->getRoles())) {
+            $tasks = $taskRepository->findBy([], ['deadline' => 'ASC']);
         } else {
-            // Sinon, récupérer uniquement les tâches appartenant à l'utilisateur
-            $tasks = $taskRepository->findBy(['owner' => $user]);
+            $tasks = $taskRepository->createQueryBuilder('t')
+                ->leftJoin('t.owners', 'owner')
+                ->leftJoin('t.assignees', 'assignee')
+                ->andWhere('owner = :user OR assignee = :user')
+                ->setParameter('user', $user)
+                ->orderBy('t.deadline', 'ASC')  // Tri par deadline
+                ->getQuery()
+                ->getResult();
         }
-    
+
         return $this->render('task/index.html.twig', [
             'tasks' => $tasks,
         ]);
     }
-    
 
     #[Route('/new', name: 'app_task_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, TaskRepository $taskRepository, Security $security): Response
+    public function new(Request $request, ManagerRegistry $doctrine, Security $security): Response
     {
         $task = new Task();
         $form = $this->createForm(TaskType::class, $task);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $task->setOwner($security->getUser()); // Associe l'utilisateur connecté
-            $taskRepository->save($task, true);
+            $user = $security->getUser();
+            if (!$user instanceof User) {
+                throw new \Exception('L\'utilisateur connecté n\'est pas valide ou non connecté.');
+            }
+
+            // Associe l'utilisateur connecté à la tâche
+            $task->addOwner($user);
+
+            // Récupère l'EntityManager et sauvegarde directement
+            $entityManager = $doctrine->getManager();
+            $entityManager->persist($task);
+            $entityManager->flush();
 
             return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -53,6 +69,7 @@ final class TaskController extends AbstractController{
             'form' => $form->createView(),
         ]);
     }
+
 
     #[Route('/{id}', name: 'app_task_show', methods: ['GET'])]
     public function show(Task $task): Response

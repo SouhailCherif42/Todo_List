@@ -4,6 +4,10 @@ namespace App\Form;
 
 use App\Entity\Task;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;  // Ajouté pour les types Text
+use Symfony\Component\Form\Extension\Core\Type\DateType;  // Ajouté pour les dates
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -12,12 +16,41 @@ class TaskType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('title')
-            ->add('description')
-            ->add('deadline', null, [
-                'widget' => 'single_text'
+            ->add('title', null, [
+                'label' => 'Titre',
             ])
-        ;
+            ->add('description', null, [
+                'label' => 'Description',
+            ])
+            ->add('deadline', null, [
+                'widget' => 'single_text',
+                'label' => 'Date limite',
+            ])
+            ->add('category', ChoiceType::class, [
+                'label' => 'Catégorie',
+                'choices' => [
+                    'Professionnel' => 'Professionnel',
+                    'Personnel' => 'Personnel',
+                ],
+            ])
+            ->add('status', ChoiceType::class, [
+                'label' => 'Statut',
+                'choices' => [
+                    'Non commencé' => 'Non commencé',
+                    'En cours' => 'En cours',
+                    'Terminé' => 'Terminé',
+                ],
+                'placeholder' => 'Sélectionner un statut',
+                'required' => false,
+            ])
+            ->add('priority', IntegerType::class, [
+                'label' => 'Priorité',
+                'attr' => [
+                    'min' => 1,
+                    'max' => 5,
+                ],
+                'required' => false,
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void
