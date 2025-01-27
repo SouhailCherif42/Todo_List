@@ -11,17 +11,18 @@ use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Email;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\SecurityBundle\Security;
 
 #[Route('/task')]
-final class TaskController extends AbstractController{
-    
+final class TaskController extends AbstractController
+{
     #[Route(name: 'app_task_index', methods: ['GET'])]
     public function index(TaskRepository $taskRepository, Security $security): Response
     {
         $user = $security->getUser();
-        dump($user->getRoles());
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
             $tasks = $taskRepository->findBy([], ['deadline' => 'ASC']);
         } else {
@@ -30,7 +31,7 @@ final class TaskController extends AbstractController{
                 ->leftJoin('t.assignees', 'assignee')
                 ->andWhere('owner = :user OR assignee = :user')
                 ->setParameter('user', $user)
-                ->orderBy('t.deadline', 'ASC')  // Tri par deadline
+                ->orderBy('t.deadline', 'ASC')
                 ->getQuery()
                 ->getResult();
         }
@@ -41,7 +42,7 @@ final class TaskController extends AbstractController{
     }
 
     #[Route('/new', name: 'app_task_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, ManagerRegistry $doctrine, Security $security): Response
+    public function new(Request $request, ManagerRegistry $doctrine, Security $security, MailerInterface $mailer): Response
     {
         $task = new Task();
         $form = $this->createForm(TaskType::class, $task);
@@ -53,13 +54,15 @@ final class TaskController extends AbstractController{
                 throw new \Exception('L\'utilisateur connecté n\'est pas valide ou non connecté.');
             }
 
-            // Associe l'utilisateur connecté à la tâche
+            // Associate the current user (task creator) with the task
             $task->addOwner($user);
 
-            // Récupère l'EntityManager et sauvegarde directement
             $entityManager = $doctrine->getManager();
             $entityManager->persist($task);
             $entityManager->flush();
+
+            // Send email to the task creator
+            $this->sendTaskNotificationEmail($mailer, $task, 'created');
 
             return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
         }
@@ -70,7 +73,6 @@ final class TaskController extends AbstractController{
         ]);
     }
 
-
     #[Route('/{id}', name: 'app_task_show', methods: ['GET'])]
     public function show(Task $task): Response
     {
@@ -80,12 +82,23 @@ final class TaskController extends AbstractController{
     }
 
     #[Route('/{id}/edit', name: 'app_task_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Task $task, EntityManagerInterface $entityManager): Response
-    {
+    public function edit(
+        Request $request,
+        Task $task,
+        EntityManagerInterface $entityManager,
+        MailerInterface $mailer
+    ): Response {
         $form = $this->createForm(TaskType::class, $task);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Check if the status changed
+            $originalStatus = $entityManager->getUnitOfWork()->getOriginalEntityData($task)['status'] ?? null;
+            if ($task->getStatus() !== $originalStatus) {
+                // Send email to the task creator about the status change
+                $this->sendTaskNotificationEmail($mailer, $task, 'status changed');
+            }
+
             $entityManager->flush();
 
             return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
@@ -93,18 +106,43 @@ final class TaskController extends AbstractController{
 
         return $this->render('task/edit.html.twig', [
             'task' => $task,
-            'form' => $form,
+            'form' => $form->createView(),
         ]);
     }
 
     #[Route('/{id}', name: 'app_task_delete', methods: ['POST'])]
-    public function delete(Request $request, Task $task, EntityManagerInterface $entityManager): Response
+    public function delete(Request $request, Task $task, EntityManagerInterface $entityManager, MailerInterface $mailer): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$task->getId(), $request->getPayload()->getString('_token'))) {
+        if ($this->isCsrfTokenValid('delete' . $task->getId(), $request->get('_token'))) {
+            $creator = $task->getOwners()->first();
             $entityManager->remove($task);
             $entityManager->flush();
+
+            // Send email to the task creator about the task deletion
+            $this->sendTaskNotificationEmail($mailer, $task, 'deleted');
+
         }
 
         return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    // Helper function to send email notifications to the task creator
+    private function sendTaskNotificationEmail(MailerInterface $mailer, Task $task, string $action): void
+    {
+        // Get the task creator (first owner)
+        $creator = $task->getOwners()->first();
+        if ($creator) {
+            $email = (new Email())
+                ->from('reda@astus.fr') 
+                ->to($creator->getEmail())      
+                ->subject(sprintf('Task %s Notification', ucfirst($action)))
+                ->text(sprintf(
+                    'The task "%s" has been %s.',
+                    $task->getName(),
+                    $action
+                ));
+
+            $mailer->send($email);
+        }
     }
 }
