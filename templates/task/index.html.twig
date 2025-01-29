@@ -15,12 +15,12 @@
     <table class="table">
         <thead>
             <tr>
-                <th>TITLE</th>
-                <th>DESCRIPTION</th>
-                <th>DEADLINE</th>
-                <th>CATEGORY</th>
-                <th>STATUS</th>
-                <th>PRIORITY</th>
+                <th class="sortable" data-sort="title">TITLE ↕</th>
+                <th class="sortable" data-sort="description">DESCRIPTION ↕</th>
+                <th class="sortable" data-sort="deadline">DEADLINE ↕</th>
+                <th class="sortable" data-sort="category">CATEGORY ↕</th>
+                <th class="sortable" data-sort="status">STATUS ↕</th>
+                <th class="sortable" data-sort="priority">PRIORITY ↕</th>
                 <th>ACTIONS</th>
             </tr>
         </thead>
@@ -65,6 +65,53 @@ searchInput.addEventListener('input', function() {
                        status.includes(searchTerm);
         
         row.style.display = matches ? '' : 'none';
+    });
+});
+
+document.querySelectorAll('th.sortable').forEach(headerCell => {
+    headerCell.addEventListener('click', () => {
+        const table = headerCell.closest('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const columnIndex = headerCell.cellIndex;
+        const isAscending = headerCell.classList.contains('asc');
+
+        // Réinitialiser les classes de tri sur tous les en-têtes
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+        });
+
+        // Trier les lignes
+        rows.sort((a, b) => {
+            const aValue = a.cells[columnIndex].textContent.trim();
+            const bValue = b.cells[columnIndex].textContent.trim();
+
+            // Tri spécial pour les dates
+            if (headerCell.dataset.sort === 'deadline') {
+                return isAscending ? 
+                    new Date(bValue) - new Date(aValue) :
+                    new Date(aValue) - new Date(bValue);
+            }
+
+            // Tri spécial pour les priorités (nombres)
+            if (headerCell.dataset.sort === 'priority') {
+                return isAscending ?
+                    Number(bValue) - Number(aValue) :
+                    Number(aValue) - Number(bValue);
+            }
+
+            // Tri alphabétique par défaut
+            return isAscending ?
+                bValue.localeCompare(aValue) :
+                aValue.localeCompare(bValue);
+        });
+
+        // Mettre à jour la classe de tri
+        headerCell.classList.toggle('asc', !isAscending);
+        headerCell.classList.toggle('desc', isAscending);
+
+        // Réorganiser les lignes dans le tableau
+        rows.forEach(row => tbody.appendChild(row));
     });
 });
 </script>

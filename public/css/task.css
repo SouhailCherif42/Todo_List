@@ -106,4 +106,31 @@ a[href*="app_task_new"]:hover {
     box-shadow: 0 0 5px rgba(0,123,255,0.2);
 }
 
+/* Styles pour les en-têtes triables */
+.sortable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+}
+
+.sortable:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Styles pour le mode sombre */
+[data-theme="dark"] .sortable:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Indicateurs de tri */
+.sortable.asc::after {
+    content: ' ↑';
+    color: #007bff;
+}
+
+.sortable.desc::after {
+    content: ' ↓';
+    color: #007bff;
+}
+
 
