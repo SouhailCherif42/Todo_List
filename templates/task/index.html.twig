@@ -9,30 +9,33 @@
     <a href="/logout">Sign Out</a>
 </div>
     <a class="task_new"href="{{ path('app_task_new') }}">Create new</a>
+    <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Rechercher une tâche..." class="search-input">
+    </div>
     <table class="table">
         <thead>
             <tr>
-                <th>Title</th>
-                <th>Description</th>
-                <th>Deadline</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>actions</th>
+                <th>TITLE</th>
+                <th>DESCRIPTION</th>
+                <th>DEADLINE</th>
+                <th>CATEGORY</th>
+                <th>STATUS</th>
+                <th>PRIORITY</th>
+                <th>ACTIONS</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="taskTableBody">
         {% for task in tasks %}
-            <tr>
+            <tr class="task-row" data-title="{{ task.title }}" data-description="{{ task.description }}" data-category="{{ task.category }}" data-status="{{ task.status }}">
                 <td>{{ task.title }}</td>
                 <td>{{ task.description }}</td>
                 <td>{{ task.deadline ? task.deadline|date('Y-m-d H:i:s') : '' }}</td>
                 <td>{{ task.category }}</td>
-                <td>{{ task.Status }}</td>
-                <td>{{ task.Priority }}</td>
+                <td>{{ task.status }}</td>
+                <td>{{ task.priority }}</td>
                 <td>
-                    <a href="{{ path('app_task_show', {'id': task.id}) }}">show</a>
-                    <a href="{{ path('app_task_edit', {'id': task.id}) }}">edit</a>
+                    <a href="{{ path('app_task_show', {'id': task.id}) }}" class="show">show</a>
+                    <a href="{{ path('app_task_edit', {'id': task.id}) }}" class="edit">edit</a>
                 </td>
             </tr>
         {% else %}
@@ -42,4 +45,27 @@
         {% endfor %}
         </tbody>
     </table>
+
+<script>
+const searchInput = document.getElementById('searchInput');
+const rows = document.getElementsByClassName('task-row');
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    
+    Array.from(rows).forEach(row => {
+        const title = row.getAttribute('data-title').toLowerCase();
+        const description = row.getAttribute('data-description').toLowerCase();
+        const category = row.getAttribute('data-category').toLowerCase();
+        const status = row.getAttribute('data-status').toLowerCase();
+        
+        const matches = title.includes(searchTerm) || 
+                       description.includes(searchTerm) || 
+                       category.includes(searchTerm) || 
+                       status.includes(searchTerm);
+        
+        row.style.display = matches ? '' : 'none';
+    });
+});
+</script>
 {% endblock %}

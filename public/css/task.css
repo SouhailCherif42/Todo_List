@@ -86,3 +86,24 @@ a:hover {
 a[href*="app_task_new"]:hover {
     background-color: #218838;
 }
+
+.search-container {
+    margin: 20px 0;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 16px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 5px rgba(0,123,255,0.2);
+}
+
+
