@@ -43,14 +43,18 @@ class TaskType extends AbstractType
                 'placeholder' => 'Sélectionner un statut',
                 'required' => false,
             ])
-            ->add('priority', IntegerType::class, [
+            ->add('priority', ChoiceType::class, [
                 'label' => 'Priorité',
-                'attr' => [
-                    'min' => 1,
-                    'max' => 5,
+                'choices' => [
+                    'Très basse' => 1,
+                    'Basse' => 2,
+                    'Moyenne' => 3,
+                    'Haute' => 4,
+                    'Très haute' => 5,
                 ],
+                'placeholder' => 'Sélectionner une priorité',
                 'required' => false,
-            ]);
+            ])
     }
 
     public function configureOptions(OptionsResolver $resolver): void
