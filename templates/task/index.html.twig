@@ -1,15 +1,17 @@
 {% block stylesheets %}
-<link rel="stylesheet" href="{{ asset('css/task.css') }}">
+    <link rel="stylesheet" href="{{ asset('css/task.css') }}">
 {% endblock %}
 
 {% block body %}
 <div class="container">
-    <h1>To do List</h1>
+    <div class="header">
+        <h1>To-Do List</h1>
+        <a href="/logout" class="btn btn-sign-out">Sign Out</a>
+    </div>
 
-    <a href="/logout">Sign Out</a>
-</div>
-    <a class="task_new"href="{{ path('app_task_new') }}">Create new</a>
-    <table class="table">
+    <a href="{{ path('app_task_new') }}" class="btn btn-create-new">Create New Task</a>
+
+    <table class="table table-striped">
         <thead>
             <tr>
                 <th>Title</th>
@@ -18,28 +20,29 @@
                 <th>Category</th>
                 <th>Status</th>
                 <th>Priority</th>
-                <th>actions</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-        {% for task in tasks %}
-            <tr>
-                <td>{{ task.title }}</td>
-                <td>{{ task.description }}</td>
-                <td>{{ task.deadline ? task.deadline|date('Y-m-d H:i:s') : '' }}</td>
-                <td>{{ task.category }}</td>
-                <td>{{ task.Status }}</td>
-                <td>{{ task.Priority }}</td>
-                <td>
-                    <a href="{{ path('app_task_show', {'id': task.id}) }}">show</a>
-                    <a href="{{ path('app_task_edit', {'id': task.id}) }}">edit</a>
-                </td>
-            </tr>
-        {% else %}
-            <tr>
-                <td colspan="7">no records found</td>
-            </tr>
-        {% endfor %}
+            {% for task in tasks %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.description }}</td>
+                    <td>{{ task.deadline ? task.deadline|date('Y-m-d H:i:s') : 'N/A' }}</td>
+                    <td>{{ task.category }}</td>
+                    <td>{{ task.status }}</td>
+                    <td>{{ task.priority }}</td>
+                    <td>
+                        <a href="{{ path('app_task_show', {'id': task.id}) }}" class="btn btn-show">Show</a>
+                        <a href="{{ path('app_task_edit', {'id': task.id}) }}" class="btn btn-edit">Edit</a>
+                    </td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">No tasks found</td>
+                </tr>
+            {% endfor %}
         </tbody>
     </table>
+</div>
 {% endblock %}
