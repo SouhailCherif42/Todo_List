@@ -116,3 +116,114 @@ document.querySelectorAll('th.sortable').forEach(headerCell => {
 });
 </script>
 {% endblock %}
+<a href="/logout">Sign Out</a>
+</div>
+    <a class="task_new"href="{{ path('app_task_new') }}">Create new</a>
+    <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Rechercher une tâche..." class="search-input">
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th class="sortable" data-sort="title">TITLE ↕</th>
+                <th class="sortable" data-sort="description">DESCRIPTION ↕</th>
+                <th class="sortable" data-sort="deadline">DEADLINE ↕</th>
+                <th class="sortable" data-sort="category">CATEGORY ↕</th>
+                <th class="sortable" data-sort="status">STATUS ↕</th>
+                <th class="sortable" data-sort="priority">PRIORITY ↕</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody id="taskTableBody">
+        {% for task in tasks %}
+            <tr class="task-row" data-title="{{ task.title }}" data-description="{{ task.description }}" data-category="{{ task.category }}" data-status="{{ task.status }}">
+                <td>{{ task.title }}</td>
+                <td>{{ task.description }}</td>
+                <td>{{ task.deadline ? task.deadline|date('Y-m-d H:i:s') : '' }}</td>
+                <td>{{ task.category }}</td>
+                <td>{{ task.status }}</td>
+                <td>{{ task.priority }}</td>
+                <td>
+                    <a href="{{ path('app_task_show', {'id': task.id}) }}" class="show">show</a>
+                    <a href="{{ path('app_task_edit', {'id': task.id}) }}" class="edit">edit</a>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="7">no records found</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+
+<script>
+const searchInput = document.getElementById('searchInput');
+const rows = document.getElementsByClassName('task-row');
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    
+    Array.from(rows).forEach(row => {
+        const title = row.getAttribute('data-title').toLowerCase();
+        const description = row.getAttribute('data-description').toLowerCase();
+        const category = row.getAttribute('data-category').toLowerCase();
+        const status = row.getAttribute('data-status').toLowerCase();
+        
+        const matches = title.includes(searchTerm) || 
+                       description.includes(searchTerm) || 
+                       category.includes(searchTerm) || 
+                       status.includes(searchTerm);
+        
+        row.style.display = matches ? '' : 'none';
+    });
+});
+
+document.querySelectorAll('th.sortable').forEach(headerCell => {
+    headerCell.addEventListener('click', () => {
+        const table = headerCell.closest('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const columnIndex = headerCell.cellIndex;
+        const isAscending = headerCell.classList.contains('asc');
+
+        // Réinitialiser les classes de tri sur tous les en-têtes
+        document.querySelectorAll('th.sortable').forEach(th => {
+            th.classList.remove('asc', 'desc');
+        });
+
+        // Trier les lignes
+        rows.sort((a, b) => {
+            const aValue = a.cells[columnIndex].textContent.trim();
+            const bValue = b.cells[columnIndex].textContent.trim();
+
+            // Tri spécial pour les dates
+            if (headerCell.dataset.sort === 'deadline') {
+                return isAscending ? 
+                    new Date(bValue) - new Date(aValue) :
+                    new Date(aValue) - new Date(bValue);
+            }
+
+            // Tri spécial pour les priorités (nombres)
+            if (headerCell.dataset.sort === 'priority') {
+                return isAscending ?
+                    Number(bValue) - Number(aValue) :
+                    Number(aValue) - Number(bValue);
+            }
+
+            // Tri alphabétique par défaut
+            return isAscending ?
+                bValue.localeCompare(aValue) :
+                aValue.localeCompare(bValue);
+        });
+
+        // Mettre à jour la classe de tri
+        headerCell.classList.toggle('asc', !isAscending);
+        headerCell.classList.toggle('desc', isAscending);
+
+        // Réorganiser les lignes dans le tableau
+        rows.forEach(row => tbody.appendChild(row));
+    });
+});
+</script>
+
+{% endblock %}
