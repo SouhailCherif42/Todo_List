@@ -6,8 +6,10 @@ use App\Entity\Task;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
-use Symfony\Component\Form\Extension\Core\Type\TextType;  // Ajouté pour les types Text
-use Symfony\Component\Form\Extension\Core\Type\DateType;  // Ajouté pour les dates
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\Extension\Core\Type\DateType;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -55,6 +57,24 @@ class TaskType extends AbstractType
                 'placeholder' => 'Sélectionner une priorité',
                 'required' => false,
             ])
+            ->add('file', FileType::class, [
+                'label' => 'Joindre un fichier',
+                'mapped' => false, // Important : ne mappe pas directement à l'entité
+                'required' => false,
+                'constraints' => [
+                    new File([
+                        'maxSize' => '5M',
+                        'mimeTypes' => [
+                            'image/jpeg',
+                            'image/png',
+                            'application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        ],
+                        'mimeTypesMessage' => 'Veuillez télécharger un fichier valide (JPG, PNG, PDF, DOC, DOCX)',
+                    ])
+                ],
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

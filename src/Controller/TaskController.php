@@ -4,8 +4,11 @@ namespace App\Controller;
 
 use App\Entity\Task;
 use App\Entity\User;
+use App\Entity\Comment;
 use App\Form\TaskType;
+use App\Form\CommentType;
 use App\Repository\TaskRepository;
+use App\Repository\CommentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,8 +26,11 @@ final class TaskController extends AbstractController
     public function index(TaskRepository $taskRepository, Security $security): Response
     {
         $user = $security->getUser();
+        if (!$user) {
+            return $this->redirectToRoute('app_login'); // Rediriger vers la page de connexion si l'utilisateur n'est pas connecté
+        }
+
         if (in_array('ROLE_ADMIN', $user->getRoles())) {
-            $tasks = $taskRepository->findBy([], ['deadline' => 'ASC']);
         } else {
             $tasks = $taskRepository->createQueryBuilder('t')
                 ->leftJoin('t.owners', 'owner')
@@ -50,22 +56,24 @@ final class TaskController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $user = $security->getUser();
-            if (!$user instanceof User) {
-                throw new \Exception('L\'utilisateur connecté n\'est pas valide ou non connecté.');
+
+            // Gestion de l'upload du fichier
+            $uploadedFile = $form->get('file')->getData();
+            if ($uploadedFile) {
+                $newFilename = uniqid() . '.' . $uploadedFile->guessExtension();
+                $uploadedFile->move(
+                    $this->getParameter('uploads_directory'), // Dossier où stocker les fichiers
+                    $newFilename
+                );
+                $task->setFile($newFilename);
             }
 
-            // Associate the current user (task creator) with the task
             $task->addOwner($user);
-
             $entityManager = $doctrine->getManager();
             $entityManager->persist($task);
             $entityManager->flush();
-
-            // Send email to the task creator
-            $this->sendTaskNotificationEmail($mailer, $task, 'created');
-
-            return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
         }
+
 
         return $this->render('task/new.html.twig', [
             'task' => $task,
@@ -73,11 +81,27 @@ final class TaskController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'app_task_show', methods: ['GET'])]
-    public function show(Task $task): Response
+    #[Route('/{id}', name: 'app_task_show', methods: ['GET', 'POST'])]
+    public function show(Task $task, Request $request, EntityManagerInterface $entityManager, Security $security): Response
     {
+        $comment = new Comment();
+        $form = $this->createForm(CommentType::class, $comment);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $user = $security->getUser();
+            $comment->setAuthor($user);
+            $comment->setTask($task);
+            $entityManager->persist($comment);
+            $entityManager->flush();
+
+            return $this->redirectToRoute('app_task_show', ['id' => $task->getId()], Response::HTTP_SEE_OTHER);
+        }
+
         return $this->render('task/show.html.twig', [
             'task' => $task,
+            'comments' => $task->getComments(),
+            'comment_form' => $form->createView(),
         ]);
     }
 
@@ -92,13 +116,6 @@ final class TaskController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Check if the status changed
-            $originalStatus = $entityManager->getUnitOfWork()->getOriginalEntityData($task)['status'] ?? null;
-            if ($task->getStatus() !== $originalStatus) {
-                // Send email to the task creator about the status change
-                $this->sendTaskNotificationEmail($mailer, $task, 'status changed');
-            }
-
             $entityManager->flush();
 
             return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
@@ -110,20 +127,20 @@ final class TaskController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'app_task_delete', methods: ['POST'])]
-    public function delete(Request $request, Task $task, EntityManagerInterface $entityManager, MailerInterface $mailer): Response
+    #[Route('/{id}/delete', name: 'app_task_delete', methods: ['POST'])]
+    public function delete(Request $request, Task $task, EntityManagerInterface $entityManager): Response
     {
         if ($this->isCsrfTokenValid('delete' . $task->getId(), $request->get('_token'))) {
-            $creator = $task->getOwners()->first();
+            // Suppression de la tâche
             $entityManager->remove($task);
             $entityManager->flush();
 
-            // Send email to the task creator about the task deletion
-            $this->sendTaskNotificationEmail($mailer, $task, 'deleted');
-
+            // Redirection immédiate vers l'index
+            return $this->redirectToRoute('app_task_index');
         }
 
-        return $this->redirectToRoute('app_task_index', [], Response::HTTP_SEE_OTHER);
+        // Redirection en cas d'échec
+        return $this->redirectToRoute('app_task_show', ['id' => $task->getId()]);
     }
 
     // Helper function to send email notifications to the task creator
@@ -133,16 +150,44 @@ final class TaskController extends AbstractController
         $creator = $task->getOwners()->first();
         if ($creator) {
             $email = (new Email())
-                ->from('reda@astus.fr') 
-                ->to($creator->getEmail())      
+                ->from('no-reply@yourdomain.com')
+                ->to($creator->getEmail())
                 ->subject(sprintf('Task %s Notification', ucfirst($action)))
                 ->text(sprintf(
                     'The task "%s" has been %s.',
-                    $task->getName(),
+                    $task->getTitle(),
                     $action
                 ));
 
             $mailer->send($email);
         }
+    }
+
+    #[Route('/comment/{id}/delete', name: 'app_comment_delete', methods: ['POST'])]
+    public function deleteComment(Request $request, Comment $comment, EntityManagerInterface $entityManager): Response
+    {
+        if ($this->isCsrfTokenValid('delete' . $comment->getId(), $request->get('_token'))) {
+            $entityManager->remove($comment);
+            $entityManager->flush();
+        }
+
+        return $this->redirectToRoute('app_task_show', ['id' => $comment->getTask()->getId()], Response::HTTP_SEE_OTHER);
+    }
+    #[Route('/comment/{id}/edit', name: 'app_comment_edit', methods: ['GET', 'POST'])]
+    public function editComment(Request $request, Comment $comment, EntityManagerInterface $entityManager): Response
+    {
+        $form = $this->createForm(CommentType::class, $comment);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $entityManager->flush();
+
+            return $this->redirectToRoute('app_task_show', ['id' => $comment->getTask()->getId()], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('comment/edit.html.twig', [
+            'comment' => $comment,
+            'form' => $form->createView(),
+        ]);
     }
 }

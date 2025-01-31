@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Controller;
 
@@ -12,18 +12,16 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\SecurityBundle\Security;
 
-final class HomeController extends AbstractController{
+final class HomeController extends AbstractController
+{
 
-    #[Route('/', name: 'home', methods: ['GET'])]
-      public function login(TaskRepository $taskRepository, Security $security): Response
-      {
-        //if ($this->getUser()) {
-        //    return $this->redirectToRoute('app_task_index');
-        //}
+  #[Route('/', name: 'home', methods: ['GET'])]
+  public function login(TaskRepository $taskRepository, Security $security): Response
+  {
+    //if ($this->getUser()) {
+    //    return $this->redirectToRoute('app_task_index');
+    //}
 
-        return $this->render('base.html.twig');
-      }
-
+    return $this->render('base.html.twig');
+  }
 }
-
-

@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Comment{% endblock %}
+
+{% block body %}
+    <h1>Edit Comment</h1>
+
+    {{ form_start(form) }}
+        {{ form_widget(form) }}
+        <button class="btn btn-primary">Save</button>
+    {{ form_end(form) }}
+
+    <a href="{{ path('app_task_show', {'id': comment.task.id}) }}">Back to Task</a>
+{% endblock %}
